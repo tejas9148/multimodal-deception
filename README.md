@@ -34,7 +34,7 @@ It combines NLP, computer vision, and fusion scoring to generate an explainable 
 
 ## ⭐ Core Features Section
 
-![Core Features](./assets/2.png)
+![Core Features](2.png)
 
 ---
 
