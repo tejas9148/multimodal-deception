@@ -70,84 +70,91 @@ class DeceptionDetector:
             dict: Analysis results with scores and verdicts
         """
         
+        # Store input text for reason generation
+        self.last_text_input = text
         # Analyze text
         text_score = self._analyze_text(text)
-        
+
         # Analyze image if provided
-        image_score = 0
+        image_score = None
         if image:
             image_score = self._analyze_image(image)
-        
+
         # Analyze metadata if selected
-        metadata_score = self._analyze_metadata(use_followers, use_account_age, use_engagement_rate)
-        
+        metadata_score = None
+        if use_followers or use_account_age or use_engagement_rate:
+            metadata_score = self._analyze_metadata(use_followers, use_account_age, use_engagement_rate)
+
         # Fuse all scores
-        risk_score = self._fuse_scores(text_score, image_score, metadata_score)
-        
+        risk_score = self._fuse_scores(
+            text_score,
+            image_score if image_score is not None else 0,
+            metadata_score if metadata_score is not None else 0
+        )
+
         # Generate verdict
         verdict = self._get_verdict(risk_score)
-        
+
         # Generate reasons
-        reasons = self._get_reasons(text_score, image_score, metadata_score, risk_score)
-        
-        return {
+        reasons = self._get_reasons(
+            text_score,
+            image_score if image_score is not None else 0,
+            metadata_score if metadata_score is not None else 0,
+            risk_score
+        )
+
+        result = {
             'riskScore': risk_score,
             'verdict': verdict,
             'textScore': text_score,
-            'imageScore': image_score,
-            'trustScore': max(0, 100 - metadata_score),
             'reasons': reasons
         }
+        if image_score is not None:
+            result['imageScore'] = image_score
+        if metadata_score is not None:
+            result['trustScore'] = max(0, 100 - metadata_score)
+        return result
     
     def _analyze_text(self, text):
         """
-        Analyze text for deception indicators
-        
-        Features:
-        - Emoji frequency (deceptive content often has excessive emojis)
-        - Capitalization patterns
-        - Typical deceptive keywords
-        - Length patterns
-        - Sentiment indicators
+        Analyze text for deception indicators using trained model if available, else fallback to rule-based.
         """
-        
         if not text:
             return 50
-        
+        # Use trained model if available
+        if self.text_model is not None and self.vectorizer is not None:
+            try:
+                X_vec = self.vectorizer.transform([text])
+                pred_proba = self.text_model.predict_proba(X_vec)[0]
+                # Assume label 1 = deceptive, 0 = authentic
+                risk_score = int(pred_proba[1] * 100)
+                return risk_score
+            except Exception as e:
+                print(f"Text model prediction error: {e}")
+                # Fallback to rule-based if error
+        # Fallback: rule-based scoring
         score = 50  # Base score
-        
-        # Feature 1: Excessive emojis (deceptive content often has >20% emojis)
         emoji_count = sum(1 for c in text if ord(c) > 127)
         emoji_ratio = emoji_count / len(text) if text else 0
         if emoji_ratio > 0.1:
             score += 15
-        
-        # Feature 2: All caps words (suspicious marketing)
         words = text.split()
         all_caps_ratio = sum(1 for w in words if w.isupper() and len(w) > 1) / len(words) if words else 0
         if all_caps_ratio > 0.15:
             score += 12
-        
-        # Feature 3: Suspicious keywords
         suspicious_keywords = [
-            'guaranteed', 'amazing', 'unbelievable', 'shocking', 'don\'t miss',
+            'guaranteed', 'amazing', 'unbelievable', 'shocking', "don't miss",
             'urgent', 'limited time', 'exclusive', 'click here', 'buy now',
             'miracle', 'cure', 'work from home', 'easy money', 'make thousands'
         ]
         text_lower = text.lower()
         keyword_matches = sum(1 for keyword in suspicious_keywords if keyword in text_lower)
         score += min(keyword_matches * 3, 20)
-        
-        # Feature 4: Excessive punctuation
         punctuation_ratio = sum(1 for c in text if c in '!?.' ) / len(text) if text else 0
         if punctuation_ratio > 0.1:
             score += 8
-        
-        # Feature 5: Text length (very short or very long can be suspicious)
         if len(text) < 20 or len(text) > 5000:
             score += 5
-        
-        # Cap the score at 100
         return min(score, 100)
     
     def _analyze_image(self, image_file):
@@ -289,54 +296,71 @@ class DeceptionDetector:
         """
         
         reasons = []
-        
         # Text-based reasons
         if text_score > 60:
             reasons.append("Suspicious language patterns detected (excessive capitalization or marketing keywords)")
-        if text_score > 75:
+        # Only flag emoji/punctuation if present
+        # Check for emoji
+        emoji_count = 0
+        punctuation_count = 0
+        if hasattr(self, 'last_text_input') and self.last_text_input:
+            emoji_count = sum(1 for c in self.last_text_input if ord(c) > 127)
+            punctuation_count = sum(1 for c in self.last_text_input if c in '!?.')
+        # If not available, fallback to text_score
+        if emoji_count > 0 or punctuation_count > 5:
             reasons.append("High emoji or punctuation usage indicating sensationalism")
-        
         # Image-based reasons
         if image_score > 50:
             reasons.append("Unusual image characteristics detected (resolution, compression, or color anomalies)")
         if image_score > 70:
             reasons.append("Image shows signs of potential manipulation or artificial generation")
-        
         # Metadata-based reasons
         if metadata_score > 50:
             reasons.append("Account metadata suggests low credibility (new account, low engagement, or few followers)")
-        
         # Generic reasons if score is moderate
         if not reasons:
             if risk_score > 50:
                 reasons.append("Multiple minor indicators suggest potential deception")
             else:
                 reasons.append("Content appears authentic based on analysis")
-        
+        # Remove duplicates
+        reasons = list(dict.fromkeys(reasons))
         return reasons
-    
-    def get_text_model_status(self):
-        """Get text model status"""
-        return {
-            'loaded': self.text_model is not None,
-            'model_type': 'Logistic Regression + TF-IDF' if self.text_model else 'Rule-based',
-            'version': '1.0'
-        }
-    
-    def get_image_model_status(self):
-        """Get image model status"""
-        return {
-            'loaded': self.image_model is not None,
-            'model_type': 'ResNet50 Transfer Learning' if self.image_model else 'Rule-based',
-            'version': '1.0'
-        }
-    
-    def get_ensemble_status(self):
-        """Get ensemble model status"""
-        return {
-            'type': 'Weighted Fusion',
-            'text_weight': 0.5,
-            'image_weight': 0.3,
-            'metadata_weight': 0.2,
-            'version': '1.0'
-        }
+        if not text:
+            return 50
+        self.last_text_input = text
+        # Use trained model if available
+        if self.text_model is not None and self.vectorizer is not None:
+            try:
+                X_vec = self.vectorizer.transform([text])
+                pred_proba = self.text_model.predict_proba(X_vec)[0]
+                # Assume label 1 = deceptive, 0 = authentic
+                risk_score = int(pred_proba[1] * 100)
+                return risk_score
+            except Exception as e:
+                print(f"Text model prediction error: {e}")
+                # Fallback to rule-based if error
+        # Fallback: rule-based scoring
+        score = 50  # Base score
+        emoji_count = sum(1 for c in text if ord(c) > 127)
+        emoji_ratio = emoji_count / len(text) if text else 0
+        if emoji_ratio > 0.1:
+            score += 15
+        words = text.split()
+        all_caps_ratio = sum(1 for w in words if w.isupper() and len(w) > 1) / len(words) if words else 0
+        if all_caps_ratio > 0.15:
+            score += 12
+        suspicious_keywords = [
+            'guaranteed', 'amazing', 'unbelievable', 'shocking', "don't miss",
+            'urgent', 'limited time', 'exclusive', 'click here', 'buy now',
+            'miracle', 'cure', 'work from home', 'easy money', 'make thousands'
+        ]
+        text_lower = text.lower()
+        keyword_matches = sum(1 for keyword in suspicious_keywords if keyword in text_lower)
+        score += min(keyword_matches * 3, 20)
+        punctuation_ratio = sum(1 for c in text if c in '!?.' ) / len(text) if text else 0
+        if punctuation_ratio > 0.1:
+            score += 8
+        if len(text) < 20 or len(text) > 5000:
+            score += 5
+        return min(score, 100)

@@ -41,42 +41,26 @@ function Dashboard() {
       if (metadata.accountAge) formData.append('accountAge', true)
       if (metadata.engagementRate) formData.append('engagementRate', true)
 
-      // TODO: Replace with actual backend API endpoint
-      // const response = await fetch('http://localhost:5000/api/analyze', {
-      //   method: 'POST',
-      //   body: formData
-      // })
-
-      // const data = await response.json()
-
-      // For now: Simulate with sample data
-      await new Promise(resolve => setTimeout(resolve, 1500)) // Simulate network delay
-
-      // This is sample data structure - will be replaced with real backend response
-      const data = {
-        riskScore: 82,
-        verdict: 'DECEPTIVE',
-        textScore: 88,
-        imageScore: 42,
-        trustScore: 12,
-        reasons: [
-          { title: 'Sensational Language', description: 'Uses hyperbolic language triggers and "clickbait" terminology.' },
-          { title: 'Excessive Embedded Text', description: 'Image contains high density of text type or misinformation markers.' },
-          { title: 'Low Account Credibility', description: 'Account age and follower to engagement ratio match risky profiles.' }
-        ]
-      }
-
-      // Set results from API response
-      setRiskScore(data.riskScore)
-      setAnalysisResult({
-        risk: data.riskScore > 70 ? 'HIGH RISK' : data.riskScore > 40 ? 'MEDIUM RISK' : 'LOW RISK',
-        score: data.riskScore,
-        verdict: data.verdict,
-        text: data.textScore,
-        image: data.imageScore,
-        trust: data.trustScore,
-        reasons: data.reasons
+      // Use real backend API endpoint
+      const response = await fetch('http://localhost:5000/api/analyze', {
+        method: 'POST',
+        body: formData
       })
+      const data = await response.json()
+      if (response.ok) {
+        setRiskScore(data.riskScore)
+        setAnalysisResult({
+          risk: data.riskScore > 70 ? 'HIGH RISK' : data.riskScore > 40 ? 'MEDIUM RISK' : 'LOW RISK',
+          score: data.riskScore,
+          verdict: data.verdict,
+          text: data.textScore,
+          image: data.imageScore,
+          trust: data.trustScore,
+          reasons: Array.isArray(data.reasons) ? data.reasons.map(r => typeof r === 'string' ? { title: r, description: r } : r) : []
+        })
+      } else {
+        setError(data.error || 'Analysis failed. Please try again.')
+      }
     } catch (err) {
       setError(err.message || 'Analysis failed. Please try again.')
       console.error('Analysis error:', err)
@@ -271,16 +255,20 @@ function Dashboard() {
                 <div className="score-stats">
                   <div className="stat">
                     <p className="stat-label">TEXT</p>
-                    <p className="stat-value">88%</p>
+                    <p className="stat-value">{analysisResult.text}%</p>
                   </div>
-                  <div className="stat">
-                    <p className="stat-label">IMAGE</p>
-                    <p className="stat-value">42%</p>
-                  </div>
-                  <div className="stat">
-                    <p className="stat-label">TRUST</p>
-                    <p className="stat-value">12%</p>
-                  </div>
+                  {typeof analysisResult.image !== 'undefined' && (
+                    <div className="stat">
+                      <p className="stat-label">IMAGE</p>
+                      <p className="stat-value">{analysisResult.image}%</p>
+                    </div>
+                  )}
+                  {typeof analysisResult.trust !== 'undefined' && (
+                    <div className="stat">
+                      <p className="stat-label">TRUST</p>
+                      <p className="stat-value">{analysisResult.trust}%</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Why This Is Flagged */}
