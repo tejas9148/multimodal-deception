@@ -27,7 +27,8 @@ It combines NLP, computer vision, and fusion scoring to generate an explainable 
 
 ## 🏠 Landing Page
 
-![Landing Page](./assets/1.png)
+![Uploading 1.png…]()
+
 
 ---
 
