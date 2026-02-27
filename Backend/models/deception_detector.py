@@ -153,6 +153,11 @@ class DeceptionDetector:
         elif emoji_count > 0:
             score += 3
         
+        # Bonus for warning/alarm emojis (🚨 ⚠️ 🔥 😱)
+        alarm_emojis = text.count('🚨') + text.count('⚠️') + text.count('🔥') + text.count('😱')
+        if alarm_emojis > 0:
+            score += min(alarm_emojis * 5, 10)
+        
         # 2. ALL CAPS analysis (exclude words that are abbreviations or single capital letters)
         # Only count words that are ALL CAPS and longer than 1 character
         caps_words = [w for w in words if w.isupper() and len(w) > 2 and w.isalpha()]
@@ -167,7 +172,9 @@ class DeceptionDetector:
         high_impact_keywords = [
             'breaking', 'major', 'devastating', 'catastrophic',  # Dramatic/sensational
             'kill', 'dead', 'death', 'earthquake', 'explosion', 'crash',  # Disaster keywords
-            'breaking news', 'just happened', 'urgent', 'alert'  # Breaking news style
+            'breaking news', 'just happened', 'urgent alert',  # Breaking news style
+            'suspended', 'blocked', 'terminated', 'restricted',  # Account threat keywords
+            'exposed', 'revealed', 'finally revealed', 'hidden'  # Conspiracy/revelation
         ]
         
         # Standard suspicious keywords
@@ -177,23 +184,41 @@ class DeceptionDetector:
             'miracle', 'cure', 'work from home', 'easy money', 'make thousands',
             'proven', 'doctor recommended', 'secret formula', 'act now',
             'must see', 'this trick', 'hate this', 'you wont believe',
-            'only', 'never', 'always', 'all', 'can', 'will',  # Absolute statements
-            'secret', 'hidden', 'suppressed', 'covered up',  # Conspiracy language
-            'discovered', 'shocking truth', 'finally revealed'  # Sensationalism
+            'only', 'never', 'always', 'can',  # Absolute statements (no 'will')
+            'secret', 'suppressed', 'covered up',  # Conspiracy language
+            'discovered', 'shocking truth', 'finally',  # Sensationalism
+            'claim your', 'free reward', 'select for', 'click the link',  # Scam language
+            # Security/account-related (moderate threat) - only in suspicious context
+            'verify', 'unusual', 'irregular',  # Verification keywords (more specific than 'confirm')
+            'security concern', 'login attempt', 'suspicious activity',  # Account threat
+            'potential issue',  # Risk warnings
+            'congratulations', 'selected', 'eligible',  # Targeted scams
         ]
         
         # Count high-impact matches (worth more)
         high_impact_matches = sum(1 for keyword in high_impact_keywords if keyword in text_lower)
         standard_matches = sum(1 for keyword in standard_keywords if keyword in text_lower)
         
-        # High-impact keywords worth 11 points each (disaster/catastrophe language), standard worth 5 each
-        score += min((high_impact_matches * 11) + (standard_matches * 5), 55)
+        # High-impact keywords worth 12 points each (disaster/catastrophe language), standard worth 5 each
+        score += min((high_impact_matches * 12) + (standard_matches * 5), 70)
+        
+        # Extra boost for combined congratulations-exclusive-reward phrases
+        if 'congratulations' in text_lower and 'exclusive' in text_lower and 'reward' in text_lower:
+            score += 15
+        
+        # Cap suspicious score for simple subscription notices
+        if 'subscription' in text_lower and 'renew' in text_lower and score < 35:
+            score = min(score, 30)
         
         # 4. Excessive punctuation (!! or ??? or ...)
         exclamation_count = text.count('!')
         question_count = text.count('?')
-        if exclamation_count > 3:
-            score += 12  # Multiple exclamation marks
+        if exclamation_count >= 5:
+            score += 18  # Very aggressive - many exclamation marks
+        elif exclamation_count > 3:
+            score += 15  # Multiple exclamation marks - very suspicious
+        elif exclamation_count > 2:
+            score += 10
         elif exclamation_count > 0:
             score += 2
         
@@ -201,6 +226,23 @@ class DeceptionDetector:
             score += 10  # Multiple question marks (clickbait style)
         elif question_count > 1:
             score += 3
+        
+        # Detect suspicious URLs and financial keywords
+        if 'http://' in text or '.biz' in text or '.xyz' in text or 'click' in text_lower:
+            score += 8
+        
+        # Detect financial/banking scam keywords (STRONG indicator)
+        banking_words = ['pin', 'cvv', 'refund', 'tax', 'atm', 'bank', 'account', 'payment', 'billing']
+        action_words = ['enter', 'release', 'unlock', 'claim', 'retrieve', 'access', 'submit', 'update']
+        has_banking = any(word in text_lower for word in banking_words)
+        has_action = any(word in text_lower for word in action_words)
+        if has_banking and has_action:
+            score += 30  # VERY strong phishing/financial scam indicator
+        
+        # Detect security-related phishing keywords
+        if any(word in text_lower for word in ['pin', 'cvv', 'password', 'verify', 'confirm']):
+            if any(threat in text_lower for threat in ['suspended', 'blocked', 'danger', 'threat']):
+                score += 15  # Strong phishing indicator
         
         # 5. Emphasis markers (multiple symbols)
         emphasis_chars = text.count('*') + text.count('_') + text.count('~') + text.count('^')
@@ -223,6 +265,11 @@ class DeceptionDetector:
         text_words_lower = [w.strip('.,!?;:') for w in words]
         emotional_matches = sum(1 for word in emotional_words if word in text_words_lower)
         score += min(emotional_matches * 2, 10)
+        
+        # Detect urgent/immediate action phrases common in scams
+        urgent_phrases = ['immediately', 'right now', 'act now', 'do not delay', 'expires soon', 'expires forever']
+        urgent_matches = sum(1 for phrase in urgent_phrases if phrase in text_lower)
+        score += min(urgent_matches * 4, 15)
         
         # Reduce if mostly facts (contains numbers, scientific terms, citations)
         has_numbers = any(c.isdigit() for c in text)

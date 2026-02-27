@@ -1,16 +1,112 @@
-# React + Vite
+# 🛡️ Deceptra AI  
+### Multimodal Social Media Deception Detection System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Deceptra AI is an advanced multimodal system designed to detect deception, misinformation, and deepfake signals across social media content using AI-powered text and image analysis.
 
-Currently, two official plugins are available:
+It combines NLP, computer vision, and fusion scoring to generate an explainable deception risk score.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🚀 Live Demo
+(Coming Soon)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## ✨ Features
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- 🧠 Text Intelligence (NLP-based deception detection)
+- 🖼️ Image Risk Detection (Fake / Manipulated image analysis)
+- 🔗 Multimodal Fusion Scoring
+- 📊 Explainable Risk Score Dashboard
+- 📁 Upload-based Content Analysis
+- 📈 Confidence & Risk Visualization
+
+---
+
+# 🖥️ Application Screenshots
+
+## 🏠 Landing Page
+
+![Landing Page](./assets/1.png)
+
+---
+
+## ⭐ Core Features Section
+
+![Core Features](./assets/2.png)
+
+---
+
+## 📊 Dashboard – Content Analysis
+
+![Dashboard](./assets/3.png)
+
+---
+
+## 🔴 High Risk Detection Example (95%)
+
+![High Risk Example](./assets/4.png)
+
+---
+
+## 🟢 Low Risk Example (30%)
+
+![Low Risk Example](./assets/5.png)
+
+---
+
+## 🟡 Medium Risk Example (44%)
+
+![Medium Risk Example](./assets/6.png)
+
+---
+
+# 🧠 How It Works
+
+1. User uploads text and/or image
+2. Text model analyzes linguistic deception patterns
+3. Image model detects fake/manipulated content
+4. Fusion engine combines both signals
+5. System outputs deception risk score with explanation
+
+---
+
+# 🏗️ Architecture
+User Input (Text + Image)
+↓
+Text Analysis Model (BERT / NLP)
+↓
+Image Detection Model (ResNet / CNN)
+↓
+Fusion Layer
+↓
+Risk Scoring Engine
+↓
+Explainable Output Dashboard
+---
+
+# 🛠️ Tech Stack
+
+Frontend:
+- React.js
+- Tailwind CSS
+- Framer Motion
+
+Backend:
+- FastAPI
+- PyTorch
+- Transformers (BERT)
+
+ML Models:
+- ResNet-18 (Image Classification)
+- BERT (Text Classification)
+- Multimodal Fusion Layer
+
+---
+
+# 📦 Installation
+
+### 1️⃣ Clone Repository
+
+```bash
+git clone https://github.com/your-username/deceptra-ai.git
