@@ -1,4 +1,4 @@
-# 🛡️ Deceptra AI  
+# 🛡️ Deceptra AI
 ### Multimodal Social Media Deception Detection System
 
 Deceptra AI is an advanced multimodal system designed to detect deception, misinformation, and deepfake signals across social media content using AI-powered text and image analysis.
@@ -23,45 +23,31 @@ It combines NLP, computer vision, and fusion scoring to generate an explainable 
 
 ---
 
-# 🖥️ Application Screenshots
+## 🖥️ Application Screenshots
 
-## 🏠 Landing Page
+### 🏠 Landing Page
 
-![Landing Page](src/assets/1.png)
+### 🏠 Landing Page
+![Landing Page](./src/assets/1.png)
 
----
+### ⭐ Core Features Section
+![Core Features](./src/assets/2 .png)
 
-## ⭐ Core Features Section
+### 📊 Dashboard – Content Analysis
+![Dashboard](./src/assets/3.png)
 
-![Core Features](src/assets/2.png)
+### 🔴 High Risk Detection Example (95%)
+![High Risk Example](./src/assets/4.png)
 
----
+### 🟢 Low Risk Example (30%)
+![Low Risk Example](./src/assets/5.png)
 
-## 📊 Dashboard – Content Analysis
-
-![Dashboard](src/assets/3.png)
-
----
-
-## 🔴 High Risk Detection Example (95%)
-
-![High Risk Example](src/assets/4.png)
+### 🟡 Medium Risk Example (44%)
+![Medium Risk Example](./src/assets/6.png)
 
 ---
 
-## 🟢 Low Risk Example (30%)
-
-![Low Risk Example](src/assets/5.png)
-
----
-
-## 🟡 Medium Risk Example (44%)
-
-![Medium Risk Example](src/assets/6.png)
-
----
-
-# 🧠 How It Works
+## 🧠 How It Works
 
 1. User uploads text and/or image
 2. Text model analyzes linguistic deception patterns
@@ -71,7 +57,7 @@ It combines NLP, computer vision, and fusion scoring to generate an explainable 
 
 ---
 
-# 🏗️ Architecture
+## 🏗️ Architecture
 User Input (Text + Image)
 ↓
 Text Analysis Model (BERT / NLP)
@@ -83,30 +69,93 @@ Fusion Layer
 Risk Scoring Engine
 ↓
 Explainable Output Dashboard
+
 ---
 
-# 🛠️ Tech Stack
+## 🛠️ Tech Stack
 
-Frontend:
+**Frontend:**
 - React.js
 - Tailwind CSS
 - Framer Motion
 
-Backend:
+**Backend:**
 - FastAPI
 - PyTorch
 - Transformers (BERT)
 
-ML Models:
+**ML Models:**
 - ResNet-18 (Image Classification)
 - BERT (Text Classification)
 - Multimodal Fusion Layer
 
 ---
 
-# 📦 Installation
+## 📦 Installation & Run
 
-### 1️⃣ Clone Repository
+### 1️⃣ Clone repository
 
 ```bash
 git clone https://github.com/your-username/deceptra-ai.git
+cd multimodal-deception
+```
+
+### 2️⃣ Frontend (development)
+
+From the project root:
+
+```bash
+npm install
+npm run dev
+```
+
+If you prefer to work in the `src/` directory directly:
+
+```bash
+cd src
+npm install
+npm run dev
+```
+
+### 3️⃣ Backend (Python)
+
+Create a virtual environment, install dependencies, and start the API server:
+
+```bash
+cd Backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1   # PowerShell
+# or: .\.venv\Scripts\activate  # cmd.exe
+pip install -r requirements.txt
+python app.py
+```
+
+### 4️⃣ Run tests / detector harness
+
+From the `Backend` folder run the included test harness:
+
+```bash
+python test_categorized.py
+```
+
+---
+
+## 🧾 Contributing
+
+Contributions are welcome. To propose changes:
+
+- Fork the repository
+- Create a feature branch
+- Open a pull request describing your change
+
+Please follow existing code style and add tests for new logic.
+
+---
+
+## 📜 License
+
+Add your project's license here (e.g., MIT). To include a license, add a `LICENSE` file at the repo root.
+
+---
+
+If images appear broken on GitHub, ensure `src/assets/*.png` files are committed and pushed — the README references `src/assets/` paths.
