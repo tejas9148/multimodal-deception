@@ -27,37 +27,37 @@ It combines NLP, computer vision, and fusion scoring to generate an explainable 
 
 ## 🏠 Landing Page
 
-![Landing Page](./assets/1.png)
+![Landing Page](src/assets/1.png)
 
 ---
 
 ## ⭐ Core Features Section
 
-![Core Features](./assets/2.png)
+![Core Features](src/assets/2.png)
 
 ---
 
 ## 📊 Dashboard – Content Analysis
 
-![Dashboard](./assets/3.png)
+![Dashboard](src/assets/3.png)
 
 ---
 
 ## 🔴 High Risk Detection Example (95%)
 
-![High Risk Example](./assets/4.png)
+![High Risk Example](src/assets/4.png)
 
 ---
 
 ## 🟢 Low Risk Example (30%)
 
-![Low Risk Example](./assets/5.png)
+![Low Risk Example](src/assets/5.png)
 
 ---
 
 ## 🟡 Medium Risk Example (44%)
 
-![Medium Risk Example](./assets/6.png)
+![Medium Risk Example](src/assets/6.png)
 
 ---
 
