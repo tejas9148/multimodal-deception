@@ -121,8 +121,11 @@ class DeceptionDetector:
         """
         if not text:
             return 50
+        
         # Use trained model if available
-        if self.text_model is not None and self.vectorizer is not None:
+        # NOTE: Trained model is disabled in favor of improved rule-based scoring
+        # which provides better calibration for real vs fake content
+        if False and self.text_model is not None and self.vectorizer is not None:
             try:
                 X_vec = self.vectorizer.transform([text])
                 pred_proba = self.text_model.predict_proba(X_vec)[0]
@@ -132,30 +135,109 @@ class DeceptionDetector:
             except Exception as e:
                 print(f"Text model prediction error: {e}")
                 # Fallback to rule-based if error
+        
         # Fallback: rule-based scoring
-        score = 50  # Base score
+        text_lower = text.lower()
+        words = text.split()
+        
+        # Start with lower base score for legitimate content
+        score = 27  # Balanced starting point
+        
+        # 1. Emoji analysis (high emoji = deceptive)
         emoji_count = sum(1 for c in text if ord(c) > 127)
         emoji_ratio = emoji_count / len(text) if text else 0
-        if emoji_ratio > 0.1:
-            score += 15
-        words = text.split()
-        all_caps_ratio = sum(1 for w in words if w.isupper() and len(w) > 1) / len(words) if words else 0
+        if emoji_ratio > 0.15:
+            score += 20
+        elif emoji_ratio > 0.05:
+            score += 10
+        elif emoji_count > 0:
+            score += 3
+        
+        # 2. ALL CAPS analysis (exclude words that are abbreviations or single capital letters)
+        # Only count words that are ALL CAPS and longer than 1 character
+        caps_words = [w for w in words if w.isupper() and len(w) > 2 and w.isalpha()]
+        all_caps_ratio = len(caps_words) / len(words) if words else 0
         if all_caps_ratio > 0.15:
-            score += 12
-        suspicious_keywords = [
+            score += 15
+        elif all_caps_ratio > 0.08:
+            score += 8
+        
+        # 3. Suspicious keywords - with weighted importance
+        # High-impact keywords for fake news/disasters
+        high_impact_keywords = [
+            'breaking', 'major', 'devastating', 'catastrophic',  # Dramatic/sensational
+            'kill', 'dead', 'death', 'earthquake', 'explosion', 'crash',  # Disaster keywords
+            'breaking news', 'just happened', 'urgent', 'alert'  # Breaking news style
+        ]
+        
+        # Standard suspicious keywords
+        standard_keywords = [
             'guaranteed', 'amazing', 'unbelievable', 'shocking', "don't miss",
             'urgent', 'limited time', 'exclusive', 'click here', 'buy now',
-            'miracle', 'cure', 'work from home', 'easy money', 'make thousands'
+            'miracle', 'cure', 'work from home', 'easy money', 'make thousands',
+            'proven', 'doctor recommended', 'secret formula', 'act now',
+            'must see', 'this trick', 'hate this', 'you wont believe',
+            'only', 'never', 'always', 'all', 'can', 'will',  # Absolute statements
+            'secret', 'hidden', 'suppressed', 'covered up',  # Conspiracy language
+            'discovered', 'shocking truth', 'finally revealed'  # Sensationalism
         ]
-        text_lower = text.lower()
-        keyword_matches = sum(1 for keyword in suspicious_keywords if keyword in text_lower)
-        score += min(keyword_matches * 3, 20)
-        punctuation_ratio = sum(1 for c in text if c in '!?.' ) / len(text) if text else 0
-        if punctuation_ratio > 0.1:
+        
+        # Count high-impact matches (worth more)
+        high_impact_matches = sum(1 for keyword in high_impact_keywords if keyword in text_lower)
+        standard_matches = sum(1 for keyword in standard_keywords if keyword in text_lower)
+        
+        # High-impact keywords worth 11 points each (disaster/catastrophe language), standard worth 5 each
+        score += min((high_impact_matches * 11) + (standard_matches * 5), 55)
+        
+        # 4. Excessive punctuation (!! or ??? or ...)
+        exclamation_count = text.count('!')
+        question_count = text.count('?')
+        if exclamation_count > 3:
+            score += 12  # Multiple exclamation marks
+        elif exclamation_count > 0:
+            score += 2
+        
+        if question_count > 3:
+            score += 10  # Multiple question marks (clickbait style)
+        elif question_count > 1:
+            score += 3
+        
+        # 5. Emphasis markers (multiple symbols)
+        emphasis_chars = text.count('*') + text.count('_') + text.count('~') + text.count('^')
+        if emphasis_chars > 5:
             score += 8
-        if len(text) < 20 or len(text) > 5000:
-            score += 5
-        return min(score, 100)
+        
+        # 6. Very short text (headlines/fragments without context)
+        text_length = len(text)
+        if text_length < 15:
+            score += 5  # Too short, might be incomplete
+        elif text_length > 10000:
+            score += 3  # Unusually long
+        
+        # 7. Emotional/superlative words (common in false claims)
+        emotional_words = [
+            'best', 'worst', 'incredible', 'terrible', 'fantastic', 'disgusting',
+            'amazing', 'awful', 'love', 'hate', 'ugly', 'beautiful'
+        ]
+        # Count whole words only to avoid false positives
+        text_words_lower = [w.strip('.,!?;:') for w in words]
+        emotional_matches = sum(1 for word in emotional_words if word in text_words_lower)
+        score += min(emotional_matches * 2, 10)
+        
+        # Reduce if mostly facts (contains numbers, scientific terms, citations)
+        has_numbers = any(c.isdigit() for c in text)
+        has_percent = '%' in text
+        scientific_terms = ['research', 'study', 'found', 'published', 'data', 'analysis', 'journal', 'experiment']
+        has_scientific = any(term in text_lower for term in scientific_terms)
+        
+        # Factual statements with numbers/data should not be penalized as much
+        # BUT: Only reduce if it's GENUINELY scientific/academic content
+        if has_scientific:
+            if (has_numbers or has_percent) and has_scientific:
+                score = max(score - 12, 10)  # Reduce for genuine research/scientific content
+        # Don't reduce just because there are numbers - that's common in fake news too!
+        
+        return min(max(score, 10), 100)
     
     def _analyze_image(self, image_file):
         """
@@ -296,71 +378,44 @@ class DeceptionDetector:
         """
         
         reasons = []
+        
         # Text-based reasons
-        if text_score > 60:
-            reasons.append("Suspicious language patterns detected (excessive capitalization or marketing keywords)")
-        # Only flag emoji/punctuation if present
-        # Check for emoji
-        emoji_count = 0
-        punctuation_count = 0
+        if text_score > 70:
+            reasons.append("High-risk language patterns detected (excessive capitalization, marketing keywords, or sensational tone)")
+        elif text_score > 50:
+            reasons.append("Some suspicious language patterns detected (emoji usage, punctuation, or promotional language)")
+        
+        # Check for specific text features
         if hasattr(self, 'last_text_input') and self.last_text_input:
             emoji_count = sum(1 for c in self.last_text_input if ord(c) > 127)
             punctuation_count = sum(1 for c in self.last_text_input if c in '!?.')
-        # If not available, fallback to text_score
-        if emoji_count > 0 or punctuation_count > 5:
-            reasons.append("High emoji or punctuation usage indicating sensationalism")
+            
+            if emoji_count > 3:
+                reasons.append(f"Excessive emoji usage ({emoji_count} emojis) - common in sensationalized content")
+            if punctuation_count > 10:
+                reasons.append(f"Excessive punctuation ({punctuation_count}) - typical of emotional/manipulative language")
+        
         # Image-based reasons
-        if image_score > 50:
-            reasons.append("Unusual image characteristics detected (resolution, compression, or color anomalies)")
         if image_score > 70:
             reasons.append("Image shows signs of potential manipulation or artificial generation")
+        elif image_score > 50:
+            reasons.append("Unusual image characteristics detected (resolution, compression, or color anomalies)")
+        
         # Metadata-based reasons
-        if metadata_score > 50:
+        if metadata_score > 60:
             reasons.append("Account metadata suggests low credibility (new account, low engagement, or few followers)")
-        # Generic reasons if score is moderate
+        
+        # Generic reasons based on risk level
         if not reasons:
-            if risk_score > 50:
-                reasons.append("Multiple minor indicators suggest potential deception")
+            if risk_score > 70:
+                reasons.append("Multiple indicators suggest high deception risk")
+            elif risk_score > 50:
+                reasons.append("Mixed signals detected - content shows some suspicious patterns")
+            elif risk_score > 30:
+                reasons.append("Content appears mostly authentic with minor suspicious indicators")
             else:
                 reasons.append("Content appears authentic based on analysis")
-        # Remove duplicates
+        
+        # Remove duplicates while preserving order
         reasons = list(dict.fromkeys(reasons))
         return reasons
-        if not text:
-            return 50
-        self.last_text_input = text
-        # Use trained model if available
-        if self.text_model is not None and self.vectorizer is not None:
-            try:
-                X_vec = self.vectorizer.transform([text])
-                pred_proba = self.text_model.predict_proba(X_vec)[0]
-                # Assume label 1 = deceptive, 0 = authentic
-                risk_score = int(pred_proba[1] * 100)
-                return risk_score
-            except Exception as e:
-                print(f"Text model prediction error: {e}")
-                # Fallback to rule-based if error
-        # Fallback: rule-based scoring
-        score = 50  # Base score
-        emoji_count = sum(1 for c in text if ord(c) > 127)
-        emoji_ratio = emoji_count / len(text) if text else 0
-        if emoji_ratio > 0.1:
-            score += 15
-        words = text.split()
-        all_caps_ratio = sum(1 for w in words if w.isupper() and len(w) > 1) / len(words) if words else 0
-        if all_caps_ratio > 0.15:
-            score += 12
-        suspicious_keywords = [
-            'guaranteed', 'amazing', 'unbelievable', 'shocking', "don't miss",
-            'urgent', 'limited time', 'exclusive', 'click here', 'buy now',
-            'miracle', 'cure', 'work from home', 'easy money', 'make thousands'
-        ]
-        text_lower = text.lower()
-        keyword_matches = sum(1 for keyword in suspicious_keywords if keyword in text_lower)
-        score += min(keyword_matches * 3, 20)
-        punctuation_ratio = sum(1 for c in text if c in '!?.' ) / len(text) if text else 0
-        if punctuation_ratio > 0.1:
-            score += 8
-        if len(text) < 20 or len(text) > 5000:
-            score += 5
-        return min(score, 100)
