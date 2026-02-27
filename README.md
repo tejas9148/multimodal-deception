@@ -25,25 +25,24 @@ It combines NLP, computer vision, and fusion scoring to generate an explainable 
 
 ## 🖥️ Application Screenshots
 
-### 🏠 Landing Page
 
 ### 🏠 Landing Page
 ![Landing Page](./src/assets/1.png)
 
 ### ⭐ Core Features Section
-![Core Features](./src/assets/2 .png)
+![Core Features](./src/assets/2.png)
 
 ### 📊 Dashboard – Content Analysis
-![Dashboard](./src/assets/3.png)
+![Dashboard](./src/assets/4.png)
 
 ### 🔴 High Risk Detection Example (95%)
-![High Risk Example](./src/assets/4.png)
+![High Risk Example](./src/assets/5.png)
 
 ### 🟢 Low Risk Example (30%)
-![Low Risk Example](./src/assets/5.png)
+![Low Risk Example](./src/assets/6.png)
 
 ### 🟡 Medium Risk Example (44%)
-![Medium Risk Example](./src/assets/6.png)
+![Medium Risk Example](./src/assets/7.png)
 
 ---
 
